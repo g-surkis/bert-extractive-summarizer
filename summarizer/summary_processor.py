@@ -23,6 +23,7 @@ class SummaryProcessor:
         :sentence_handler: The handler to process sentences. If want to use coreference, instantiate and pass.
         :param random_state: The random state to reproduce summarizations.
         """
+        print('INIT')
         np.random.seed(random_state)
         self.model = model
         self.sentence_handler = sentence_handler
@@ -46,6 +47,7 @@ class SummaryProcessor:
         :param k_max: The maximum number of clusters to search.
         :return: List of elbow inertia values.
         """
+        print('CALCULATE ELBOW')
         sentences = self.sentence_handler(body, min_length, max_length)
 
         if k_max is None:
@@ -75,6 +77,7 @@ class SummaryProcessor:
         :param k_max: The maximum number of clusters to search.
         :return: The optimal k value as an int.
         """
+        print('CALCULATE OPTIMAL K')
         sentences = self.sentence_handler(body, min_length, max_length)
 
         if k_max is None:
@@ -104,6 +107,7 @@ class SummaryProcessor:
         :param num_sentences: Number of sentences to use for summarization.
         :return: A tuple of summarized sentences and embeddings
         """
+        print('CLASTER RUNNER')
         first_embedding = None
         hidden = self.model(sentences)
 
@@ -159,7 +163,7 @@ class SummaryProcessor:
         :return: A summary embedding
         """
         sentences = self.sentence_handler(body, min_length, max_length)
-
+        print('RUN EMBEDDINGS')
         if sentences:
             _, embeddings = self.cluster_runner(sentences, ratio, algorithm, use_first, num_sentences)
 
@@ -196,6 +200,7 @@ class SummaryProcessor:
         :param return_as_list: Whether or not to return sentences as list.
         :return: A summary sentence
         """
+        print('RUN')
         sentences = self.sentence_handler(body, min_length, max_length)
 
         if sentences:
@@ -231,6 +236,7 @@ class SummaryProcessor:
         :param return_as_list: Whether or not to return sentences as list.
         :return: A summary sentence.
         """
+        print('CALL')
         return self.run(body, ratio, min_length, max_length,
                         use_first, algorithm, num_sentences, return_as_list)
 
