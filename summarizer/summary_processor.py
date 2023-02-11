@@ -136,7 +136,9 @@ class SummaryProcessor:
         sentences = [sentences[j] for j in summary_sentence_indices]
         embeddings = np.asarray([hidden[j] for j in summary_sentence_indices])
 
-        return sentences, embeddings
+        custom = summary_sentence_indices
+
+        return sentences, embeddings, custom
 
     def run_embeddings(
         self,
@@ -204,12 +206,12 @@ class SummaryProcessor:
         sentences = self.sentence_handler(body, min_length, max_length)
 
         if sentences:
-            sentences, _ = self.cluster_runner(sentences, ratio, algorithm, use_first, num_sentences)
+            sentences, _, custom = self.cluster_runner(sentences, ratio, algorithm, use_first, num_sentences)
 
         if return_as_list:
-            return sentences
+            return sentences, custom
         else:
-            return ' '.join(sentences)
+            return ' '.join(sentences), custom
 
     def __call__(
         self,
