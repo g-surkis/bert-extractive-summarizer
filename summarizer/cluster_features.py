@@ -6,6 +6,8 @@ from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.mixture import GaussianMixture
 
+import json
+
 
 class ClusterFeatures:
     """Basic handling of clustering features."""
@@ -69,15 +71,19 @@ class ClusterFeatures:
         cur_arg = -1
         args = {}
         used_idx = []
+        print('self.features.shape', self.features.shape)
+        # print('centroids: ', centroids)
 
         for j, centroid in enumerate(centroids):
 
             for i, feature in enumerate(self.features):
-                value = np.linalg.norm(feature - centroid)
 
+                value = np.linalg.norm(feature - centroid)
+                # print('value', value)
                 if value < centroid_min and i not in used_idx:
                     cur_arg = i
                     centroid_min = value
+                # print('centroid_min', centroid_min)
 
             used_idx.append(cur_arg)
             args[j] = cur_arg
@@ -122,7 +128,8 @@ class ClusterFeatures:
             delta_2.append(delta_1[i] - delta_1[i - 1] if i > 1 else 0.0)
 
         for j in range(len(inertias)):
-            strength = 0 if j <= 1 or j == len(inertias) - 1 else delta_2[j + 1] - delta_1[j + 1]
+            strength = 0 if j <= 1 or j == len(
+                inertias) - 1 else delta_2[j + 1] - delta_1[j + 1]
 
             if strength > max_strength:
                 max_strength = strength
@@ -149,10 +156,13 @@ class ClusterFeatures:
         model = self._get_model(k).fit(self.features)
 
         centroids = self._get_centroids(model)
+        # print('centroids',  json.dumps(centroids.tolist()))
+        #print('centroids.shape', centroids.shape)
         cluster_args = self.__find_closest_args(centroids)
+        #print('cluster_args: ', cluster_args)
 
         sorted_values = sorted(cluster_args.values())
-        return sorted_values
+        return sorted_values, cluster_args
 
     def __call__(self, ratio: float = 0.1, num_sentences: int = None) -> List[int]:
         """

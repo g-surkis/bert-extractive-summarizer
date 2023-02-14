@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union, Dict
 
 import numpy as np
 
@@ -23,7 +23,7 @@ class SummaryProcessor:
         :sentence_handler: The handler to process sentences. If want to use coreference, instantiate and pass.
         :param random_state: The random state to reproduce summarizations.
         """
-        print('INIT')
+        print('INIT FROM BERT SUMMARIZER')
         np.random.seed(random_state)
         self.model = model
         self.sentence_handler = sentence_handler
@@ -47,7 +47,6 @@ class SummaryProcessor:
         :param k_max: The maximum number of clusters to search.
         :return: List of elbow inertia values.
         """
-        print('CALCULATE ELBOW')
         sentences = self.sentence_handler(body, min_length, max_length)
 
         if k_max is None:
@@ -77,7 +76,6 @@ class SummaryProcessor:
         :param k_max: The maximum number of clusters to search.
         :return: The optimal k value as an int.
         """
-        print('CALCULATE OPTIMAL K')
         sentences = self.sentence_handler(body, min_length, max_length)
 
         if k_max is None:
@@ -96,7 +94,7 @@ class SummaryProcessor:
         algorithm: str = 'kmeans',
         use_first: bool = True,
         num_sentences: int = 3,
-    ) -> Tuple[List[str], np.ndarray]:
+    ) -> Tuple[List[str], np.ndarray, Dict]:
         """
         Runs the cluster algorithm based on the hidden state. Returns both the embeddings and sentences.
 
@@ -107,7 +105,6 @@ class SummaryProcessor:
         :param num_sentences: Number of sentences to use for summarization.
         :return: A tuple of summarized sentences and embeddings
         """
-        print('CLASTER RUNNER')
         first_embedding = None
         hidden = self.model(sentences)
 
@@ -120,13 +117,17 @@ class SummaryProcessor:
             first_embedding = hidden[0, :]
             hidden = hidden[1:, :]
 
-        summary_sentence_indices = ClusterFeatures(
+        summary_sentence_indices, cluster_args = ClusterFeatures(
             hidden, algorithm, random_state=self.random_state).cluster(ratio, num_sentences)
+
+  
+        #print(len(summary_sentence_indices))
 
         if use_first:
             if summary_sentence_indices:
                 # adjust for the first sentence to the right.
-                summary_sentence_indices = [i + 1 for i in summary_sentence_indices]
+                summary_sentence_indices = [
+                    i + 1 for i in summary_sentence_indices]
                 summary_sentence_indices.insert(0, 0)
             else:
                 summary_sentence_indices.append(0)
@@ -136,9 +137,7 @@ class SummaryProcessor:
         sentences = [sentences[j] for j in summary_sentence_indices]
         embeddings = np.asarray([hidden[j] for j in summary_sentence_indices])
 
-        custom = summary_sentence_indices
-
-        return sentences, embeddings, custom
+        return sentences, embeddings, cluster_args
 
     def run_embeddings(
         self,
@@ -165,9 +164,10 @@ class SummaryProcessor:
         :return: A summary embedding
         """
         sentences = self.sentence_handler(body, min_length, max_length)
-        print('RUN EMBEDDINGS')
+
         if sentences:
-            _, embeddings = self.cluster_runner(sentences, ratio, algorithm, use_first, num_sentences)
+            _, embeddings = self.cluster_runner(
+                sentences, ratio, algorithm, use_first, num_sentences)
 
             if aggregate is not None:
                 assert aggregate in [
@@ -188,7 +188,7 @@ class SummaryProcessor:
         algorithm: str = 'kmeans',
         num_sentences: int = None,
         return_as_list: bool = False,
-    ) -> Union[List, str]:
+    ) -> Union[Tuple[List, Dict], Tuple[str, Dict]]:
         """
         Preprocesses the sentences, runs the clusters to find the centroids, then combines the sentences.
 
@@ -202,16 +202,16 @@ class SummaryProcessor:
         :param return_as_list: Whether or not to return sentences as list.
         :return: A summary sentence
         """
-        print('RUN')
         sentences = self.sentence_handler(body, min_length, max_length)
 
         if sentences:
-            sentences, _, custom = self.cluster_runner(sentences, ratio, algorithm, use_first, num_sentences)
+            sentences, _, cluster_args = self.cluster_runner(
+                sentences, ratio, algorithm, use_first, num_sentences)
 
         if return_as_list:
-            return sentences, custom
+            return sentences, cluster_args
         else:
-            return ' '.join(sentences), custom
+            return ' '.join(sentences)
 
     def __call__(
         self,
@@ -238,7 +238,5 @@ class SummaryProcessor:
         :param return_as_list: Whether or not to return sentences as list.
         :return: A summary sentence.
         """
-        print('CALL')
         return self.run(body, ratio, min_length, max_length,
                         use_first, algorithm, num_sentences, return_as_list)
-
